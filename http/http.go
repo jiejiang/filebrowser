@@ -42,7 +42,7 @@ func serve(c *fb.Context, w http.ResponseWriter, r *http.Request) (int, error) {
 	// returns a 404 fb.Error because we're not supposed to be here!
 	p := strings.TrimPrefix(r.URL.Path, c.BaseURL)
 
-	if len(p) >= len(r.URL.Path) && c.BaseURL != "" {
+	if len(p) > len(r.URL.Path) && c.BaseURL != "" {
 		return http.StatusNotFound, nil
 	}
 

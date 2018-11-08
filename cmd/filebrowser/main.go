@@ -2,6 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/asdine/storm"
 	"github.com/filebrowser/filebrowser"
 	"github.com/filebrowser/filebrowser/bolt"
@@ -11,13 +19,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"io/ioutil"
-	"log"
-	"net"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings")
+)
 
 var (
 	addr            string
@@ -157,6 +159,13 @@ func main() {
 		}
 	}
 
+	if absScope, err := filepath.Abs(viper.GetString("Scope")); err != nil {
+		panic(err)
+	} else {
+		viper.Set("Scope", absScope)
+	}
+	log.Println("Using root scope:", viper.GetString("Scope"))
+
 	// Set up process log before anything bad happens.
 	switch viper.GetString("Logger") {
 	case "stdout":
@@ -241,6 +250,16 @@ func handler() http.Handler {
 			Share:  bolt.ShareStore{DB: db},
 		},
 		NewFS: func(scope string) filebrowser.FileSystem {
+			rootScope := viper.GetString("Scope")
+			if absScope, err := filepath.Abs(filepath.Join(rootScope, scope)); err != nil {
+				scope = filepath.Join(rootScope, "none")
+			} else {
+				if !strings.HasPrefix(absScope, rootScope) {
+					scope = filepath.Join(rootScope, "invalid")
+				} else {
+					scope = absScope
+				}
+			}
 			return fileutils.Dir(scope)
 		},
 	}
